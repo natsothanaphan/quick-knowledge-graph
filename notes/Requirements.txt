@@ -1,0 +1,33 @@
+I want to make a personal React app to manage a knowledge graph.
+Simply, the node consists of title (which is the unique id),
+and content.
+A directed edge connects 2 nodes with a label.
+
+Flow:
+
+Overview page:
+We see the list of all nodes.
+We can search for title.
+We can add a new node.
+We can click a node which goes to node page.
+
+Node page:
+We see the title and content.
+We see outgoing and incoming edges.
+We can click an edge to go to another node.
+We can edit this node.
+We can edit the associated edges.
+We can delete this node.
+
+User:
+
+Each user gets a single graph (for simplicity).
+
+Infrastructure:
+
+Auth: We will use Firebase Authentication.
+Database: We will use Firebase Firestore.
+Backend: We will use Firebase Functions.
+Frontend: We will use Firebase Hosting.
+
+First, let's think through the requirements without writing out any code.

@@ -1,0 +1,54 @@
+Let's go with:
+
+
+Node:
+- id (unique, unchangeable, system assigned)
+- title (unique - for user searchable)
+- content
+
+Edge
+- id (system assigned)
+- source (node id)
+- target (node id)
+- label
+
+
+List nodes:
+
+GET /api/nodes
+- returns id, title (since content may be long)
+- can filter by title substring
+
+
+CRUD nodes:
+
+POST /api/nodes
+- create node with title, content
+
+GET /api/nodes/{nodeId}
+- returns id, title, content (full data)
+- also tags along incoming edges & outgoing edges
+
+PATCH /api/nodes/{nodeId}
+- this updates title and/or content
+
+DELETE /api/nodes/{nodeId}
+- delete node
+- also deletes associated edges
+
+
+CRUD edges:
+
+POST /api/edges
+- create edge with source, target, label
+
+(no need to get a single edge)
+
+PATCH /api/edges/{edgeId}
+- this only updates label
+
+DELETE /api/edges/{edgeId}
+- delete edge
+
+
+Let's start writing out the first version of the backend code.

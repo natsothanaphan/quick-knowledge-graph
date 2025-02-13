@@ -27,7 +27,7 @@ async function authenticate(req, res, next) {
     req.uid = decodedToken.uid;
     next();
   } catch (error) {
-    console.error("Authentication error:", error);
+    logger.error("Authentication error:", error);
     return res.status(401).json({ error: "Unauthorized: Invalid token" });
   }
 }
@@ -66,7 +66,7 @@ app.get("/api/nodes", async (req, res) => {
     });
     return res.json(nodes);
   } catch (error) {
-    console.error("Error fetching nodes:", error);
+    logger.error("Error fetching nodes:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -93,7 +93,7 @@ app.post("/api/nodes", async (req, res) => {
     const newNodeRef = await nodesRef.add(newNodeData);
     return res.status(201).json({ id: newNodeRef.id, title, content });
   } catch (error) {
-    console.error("Error creating node:", error);
+    logger.error("Error creating node:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -135,7 +135,7 @@ app.get("/api/nodes/:nodeId", async (req, res) => {
       outgoingEdges: outgoingEdges,
     });
   } catch (error) {
-    console.error("Error fetching node details:", error);
+    logger.error("Error fetching node details:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -181,7 +181,7 @@ app.patch("/api/nodes/:nodeId", async (req, res) => {
     const updatedDoc = await nodeRef.get();
     return res.json({ id: updatedDoc.id, ...updatedDoc.data() });
   } catch (error) {
-    console.error("Error updating node:", error);
+    logger.error("Error updating node:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -217,7 +217,7 @@ app.delete("/api/nodes/:nodeId", async (req, res) => {
     await batch.commit();
     return res.json({ message: "Node and associated edges deleted successfully" });
   } catch (error) {
-    console.error("Error deleting node:", error);
+    logger.error("Error deleting node:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -249,7 +249,7 @@ app.post("/api/edges", async (req, res) => {
     const edgeRef = await edgesRef.add(edgeData);
     return res.status(201).json({ id: edgeRef.id, ...edgeData });
   } catch (error) {
-    console.error("Error creating edge:", error);
+    logger.error("Error creating edge:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -275,7 +275,7 @@ app.patch("/api/edges/:edgeId", async (req, res) => {
     const updatedEdgeDoc = await edgeRef.get();
     return res.json({ id: updatedEdgeDoc.id, ...updatedEdgeDoc.data() });
   } catch (error) {
-    console.error("Error updating edge:", error);
+    logger.error("Error updating edge:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -296,10 +296,10 @@ app.delete("/api/edges/:edgeId", async (req, res) => {
     await edgeRef.delete();
     return res.json({ message: "Edge deleted successfully" });
   } catch (error) {
-    console.error("Error deleting edge:", error);
+    logger.error("Error deleting edge:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 });
 
 // Export the Express app as a Firebase Function.
-exports.api = onRequest(app);
+exports.app = onRequest(app);
