@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function Overview({ user, onSelectNode }) {
+export default function Overview({ user, onSelectNode, onNodesFetched }) {
   const [nodes, setNodes] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,6 +23,9 @@ export default function Overview({ user, onSelectNode }) {
       }
       const data = await res.json();
       setNodes(data);
+      if (onNodesFetched) {
+        onNodesFetched(data);
+      }
     } catch (err) {
       setError(err.message);
     } finally {

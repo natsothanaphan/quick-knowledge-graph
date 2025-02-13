@@ -7,6 +7,7 @@ import './App.css';
 function App() {
   const [user, setUser] = useState(null);
   const [selectedNodeId, setSelectedNodeId] = useState(null);
+  const [allNodes, setAllNodes] = useState([]);
 
   const handleSignIn = (signedInUser) => {
     setUser(signedInUser);
@@ -36,9 +37,10 @@ function App() {
           user={user}
           onSelectNode={handleSelectNode}
           onBack={handleBack}
+          allNodes={allNodes}
         />
       ) : (
-        <Overview user={user} onSelectNode={handleSelectNode} />
+        <Overview user={user} onSelectNode={handleSelectNode} onNodesFetched={setAllNodes} />
       )}
     </div>
   );
