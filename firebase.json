@@ -27,8 +27,8 @@
     ],
     "rewrites": [
       {
-        "source": "/api",
-        "function": "app/api"
+        "source": "/api/**",
+        "function": "app"
       }
     ]
   },
