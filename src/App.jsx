@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Auth from './components/Auth';
-import AuthenticatedStub from './components/AuthenticatedStub';
+import Overview from './components/Overview';
 import './App.css';
 
 function App() {
@@ -13,7 +13,7 @@ function App() {
   return (
     <div className="App">
       {user ? (
-        <AuthenticatedStub user={user} />
+        <Overview user={user} />
       ) : (
         <Auth onSignIn={handleSignIn} />
       )}
