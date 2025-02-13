@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-export default function Overview({ user }) {
+export default function Overview({ user, onSelectNode }) {
   const [nodes, setNodes] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
@@ -101,7 +101,17 @@ export default function Overview({ user }) {
         {error && <p style={{ color: 'firebrick' }}>{error}</p>}
         <ul>
           {nodes.map(node => (
-            <li key={node.id}>{node.title}</li>
+            <li key={node.id}>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSelectNode(node.id);
+                }}
+              >
+                {node.title}
+              </a>
+            </li>
           ))}
         </ul>
       </div>
