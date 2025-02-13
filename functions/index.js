@@ -301,5 +301,5 @@ app.delete("/api/edges/:edgeId", async (req, res) => {
   }
 });
 
-// Export the Express app as a Firebase Function.
+// Export the Express app as a Firebase Function
 exports.app = onRequest(app);
