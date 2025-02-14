@@ -24,10 +24,6 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
       if (onNodesFetched) {
         onNodesFetched(data);
       }
-      const filteredNodes = data.filter(node =>
-        node.title.includes(search)
-      );
-      setNodes(filteredNodes);
     } catch (err) {
       setError(err.message);
     } finally {
