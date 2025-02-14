@@ -112,7 +112,6 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
               onChange={(e) => setNewContent(e.target.value)}
               required
               rows="6"
-              cols="60"
             />
           </div>
           <button type="submit">Add</button>

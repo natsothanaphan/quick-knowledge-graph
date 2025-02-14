@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles.css';
+import './NodeDetail.css';
 import * as api from '../api.js';
 
 export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNodes }) {
@@ -149,10 +150,12 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
     <>
       {onBack && <button onClick={onBack}>Overview</button>}
 
+      <div className="node-detail-container">
       {editingNode ? (
         <form onSubmit={handleSaveNode}>
           <div>
-            <input 
+            <input
+              className="edit-node-input"
               type="text"
               placeholder="Title"
               value={editTitle} 
@@ -162,25 +165,26 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
           </div>
           <div>
             <textarea
+              className="edit-node-textarea"
               placeholder="Details"
               value={editContent} 
               onChange={(e) => setEditContent(e.target.value)} 
               required 
               rows="6" 
-              cols="60" 
             />
           </div>
           <button type="submit">Save</button>
           <button type="button" onClick={handleCancelEditNode}>Cancel</button>
         </form>
       ) : (
-        <div>
+        <>
           <h1>{nodeData.title}</h1>
           <p>{nodeData.content}</p>
           <button onClick={handleEditNode} title="Edit">✏️</button>
           <button onClick={handleDeleteNode} title="Delete">🗑️</button>
-        </div>
+        </>
       )}
+      </div>
 
       <section>
         <ul>
