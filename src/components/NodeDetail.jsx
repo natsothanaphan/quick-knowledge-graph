@@ -179,7 +179,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
       ) : (
         <>
           <h1>{nodeData.title}</h1>
-          <p>{nodeData.content}</p>
+          <pre>{nodeData.content}</pre>
           <button onClick={handleEditNode} title="Edit">✏️</button>
           <button onClick={handleDeleteNode} title="Delete">🗑️</button>
         </>

@@ -4,6 +4,10 @@
   word-break: break-word;
 }
 
+.node-detail-container pre {
+  white-space: pre-wrap;
+}
+
 .edit-node-input {
   width: calc(100% - 2.4em - 2px);
   max-width: calc(420px - 2.4em - 2px);
