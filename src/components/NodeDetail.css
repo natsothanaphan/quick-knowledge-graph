@@ -14,8 +14,8 @@
 }
 
 .edit-node-textarea {
-  width: calc(100% - 6px);
-  max-width: calc(600px - 6px);
+  width: calc(100% - 2.4em - 2px);
+  max-width: calc(600px - 2.4em - 2px);
 }
 
 .edges-container {

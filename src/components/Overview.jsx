@@ -21,6 +21,7 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
       const idToken = await user.getIdToken();
       // Always fetch all nodes by passing an empty string for search
       const data = await api.fetchNodes(idToken, '');
+      data.sort((a, b) => a.title.localeCompare(b.title));
       setFullNodes(data);
       if (onNodesFetched) {
         onNodesFetched(data);

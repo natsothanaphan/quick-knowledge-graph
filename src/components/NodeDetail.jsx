@@ -29,6 +29,20 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
     try {
       const idToken = await user.getIdToken();
       const data = await api.getNodeDetails(idToken, nodeId);
+      data.incomingEdges.sort((a, b) => {
+        const labelComparison = a.label.localeCompare(b.label);
+        if (labelComparison !== 0) return labelComparison;
+        const titleA = getNodeTitleById(a.source);
+        const titleB = getNodeTitleById(b.source);
+        return titleA.localeCompare(titleB);
+      });
+      data.outgoingEdges.sort((a, b) => {
+        const labelComparison = a.label.localeCompare(b.label);
+        if (labelComparison !== 0) return labelComparison;
+        const titleA = getNodeTitleById(a.target);
+        const titleB = getNodeTitleById(b.target);
+        return titleA.localeCompare(titleB);
+      });
       setNodeData(data.node);
       setIncomingEdges(data.incomingEdges);
       setOutgoingEdges(data.outgoingEdges);
@@ -128,11 +142,11 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
     }
   };
 
-  // Helper function to map a node ID to its title using the allNodes prop.
-  const getNodeTitleById = (nodeId) => {
-    const node = allNodes.find(n => n.id === nodeId);
-    return node ? node.title : nodeId;
-  };
+  const nodeTitleMap = allNodes.reduce((map, node) => {
+    map[node.id] = node.title;
+    return map;
+  }, {});
+  const getNodeTitleById = (nodeId) => nodeTitleMap[nodeId] || nodeId;
 
   if (loading) {
     return <p>Loading entry...</p>;
