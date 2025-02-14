@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import '../styles.css';
 
 export default function Overview({ user, onSelectNode, onNodesFetched }) {
   const [nodes, setNodes] = useState([]);
@@ -66,7 +67,7 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
   return (
     <div>
       <h2>Entries</h2>
-      <div style={{ marginBottom: "1em" }}>
+      <div className="search-container">
         <input
           type="text"
           placeholder="Search"
@@ -101,7 +102,7 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
       </div>
       <div>
         {loading && <p>Loading nodes...</p>}
-        {error && <p style={{ color: 'firebrick' }}>{error}</p>}
+        {error && <p className="error">{error}</p>}
         <ul>
           {nodes.map(node => (
             <li key={node.id}>

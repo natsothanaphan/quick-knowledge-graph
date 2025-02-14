@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import '../styles.css';
 
 export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNodes }) {
   const [nodeData, setNodeData] = useState(null);
@@ -205,7 +206,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
   }
 
   if (error) {
-    return <p style={{ color: 'firebrick' }}>Error: {error}</p>;
+    return <p className="error">Error: {error}</p>;
   }
 
   if (!nodeData) {
@@ -351,4 +352,4 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
       </section>
     </div>
   );
-} 
+}

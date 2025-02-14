@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword } from "firebase/auth";
+import '../styles.css';
 
 export default function Auth({ onSignIn }) {
   const [email, setEmail] = useState("");
@@ -20,7 +21,7 @@ export default function Auth({ onSignIn }) {
 
   return (
     <div>
-      {error && <p style={{ color: "firebrick" }}>{error}</p>}
+      {error && <p className="error">{error}</p>}
       <form onSubmit={handleSignIn}>
         <div>
           <label>Email: </label>
@@ -44,4 +45,4 @@ export default function Auth({ onSignIn }) {
       </form>
     </div>
   );
-} 
+}
