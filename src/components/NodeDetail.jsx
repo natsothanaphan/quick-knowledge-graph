@@ -186,13 +186,14 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
       )}
       </div>
 
-      <section>
+      <div className="edges-container">
         <ul>
           {outgoingEdges.map(edge => (
             <li key={edge.id}>
               {editingEdgeId === edge.id ? (
                 <>
-                  <input 
+                  <input
+                    className="edit-edge-input"
                     type="text"
                     placeholder="Label"
                     value={editingEdgeLabel} 
@@ -224,6 +225,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
               {editingEdgeId === edge.id ? (
                 <>
                   <input 
+                    className="edit-edge-input"
                     type="text"
                     placeholder="Label"
                     value={editingEdgeLabel} 
@@ -251,9 +253,9 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
             </li>
           ))}
         </ul>
-      </section>
+      </div>
 
-      <section>
+      <div>
         <h2>Connect to</h2>
         <form onSubmit={handleAddEdge}>
           <div>
@@ -276,7 +278,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
           </div>
           <button type="submit">Add</button>
         </form>
-      </section>
+      </div>
     </>
   );
 }
