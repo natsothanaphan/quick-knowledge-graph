@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles.css';
+import * as api from '../api.js';
 
 export default function Overview({ user, onSelectNode, onNodesFetched }) {
   const [nodes, setNodes] = useState([]);
@@ -14,15 +15,7 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
     setError('');
     try {
       const idToken = await user.getIdToken();
-      const res = await fetch(`/api/nodes?search=${encodeURIComponent(search)}`, {
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      });
-      if (!res.ok) {
-        throw new Error('Failed to fetch nodes');
-      }
-      const data = await res.json();
+      const data = await api.fetchNodes(idToken, search);
       setNodes(data);
       if (onNodesFetched) {
         onNodesFetched(data);
@@ -43,18 +36,7 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
     e.preventDefault();
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch(`/api/nodes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({ title: newTitle, content: newContent })
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add node');
-      }
+      await api.addNode(idToken, newTitle, newContent);
       // After adding a node, re-fetch the node list.
       fetchNodes();
       setNewTitle('');

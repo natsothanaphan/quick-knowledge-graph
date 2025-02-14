@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles.css';
+import * as api from '../api.js';
 
 export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNodes }) {
   const [nodeData, setNodeData] = useState(null);
@@ -26,16 +27,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
     setError('');
     try {
       const idToken = await user.getIdToken();
-      const res = await fetch(`/api/nodes/${nodeId}`, {
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Error fetching node details');
-      }
-      const data = await res.json();
+      const data = await api.getNodeDetails(idToken, nodeId);
       setNodeData(data.node);
       setIncomingEdges(data.incomingEdges);
       setOutgoingEdges(data.outgoingEdges);
@@ -65,19 +57,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
     e.preventDefault();
     try {
       const idToken = await user.getIdToken();
-      const res = await fetch(`/api/nodes/${nodeId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({ title: editTitle, content: editContent })
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to update node');
-      }
-      const updatedNode = await res.json();
+      const updatedNode = await api.updateNode(idToken, nodeId, editTitle, editContent);
       setNodeData(updatedNode);
       setEditingNode(false);
     } catch (err) {
@@ -89,16 +69,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
     if (!window.confirm("Are you sure you want to delete this node?")) return;
     try {
       const idToken = await user.getIdToken();
-      const res = await fetch(`/api/nodes/${nodeId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to delete node');
-      }
+      await api.deleteNode(idToken, nodeId);
       alert('Node deleted');
       onBack(); // Return to overview after deletion
     } catch (err) {
@@ -120,18 +91,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
   const handleSaveEdge = async (edgeId) => {
     try {
       const idToken = await user.getIdToken();
-      const res = await fetch(`/api/edges/${edgeId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({ label: editingEdgeLabel })
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to update edge');
-      }
+      await api.updateEdge(idToken, edgeId, editingEdgeLabel);
       await fetchNodeDetails(); // Refresh edges
       setEditingEdgeId(null);
       setEditingEdgeLabel('');
@@ -144,16 +104,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
     if (!window.confirm("Are you sure you want to delete this edge?")) return;
     try {
       const idToken = await user.getIdToken();
-      const res = await fetch(`/api/edges/${edgeId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${idToken}`
-        }
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to delete edge');
-      }
+      await api.deleteEdge(idToken, edgeId);
       await fetchNodeDetails(); // Refresh edges
     } catch (err) {
       alert(err.message);
@@ -171,22 +122,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
       if (!targetNode) {
         throw new Error("Target node with that title not found");
       }
-      const res = await fetch(`/api/edges`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({
-          source: nodeId,
-          target: targetNode.id, // use the mapped id
-          label: newEdgeLabel
-        })
-      });
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to add edge');
-      }
+      await api.addEdge(idToken, nodeId, targetNode.id, newEdgeLabel);
       await fetchNodeDetails(); // Refresh edges
       setNewEdgeTarget('');
       setNewEdgeLabel('');
