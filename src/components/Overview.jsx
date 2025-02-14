@@ -59,7 +59,7 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
 
   return (
     <div>
-      <h2>Entries</h2>
+      <h1>Overview</h1>
       <div className="search-container">
         <input
           type="text"
@@ -68,33 +68,9 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
+
       <div>
-        <h3>New entry</h3>
-        <form onSubmit={handleAddNode}>
-          <div>
-            <input
-              type="text"
-              placeholder="Title"
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <textarea
-              placeholder="Details"
-              value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
-              required
-              rows="4"
-              cols="50"
-            />
-          </div>
-          <button type="submit">Add</button>
-        </form>
-      </div>
-      <div>
-        {loading && <p>Loading nodes...</p>}
+        {loading && <p>Loading...</p>}
         {error && <p className="error">{error}</p>}
         <ul>
           {nodes.map(node => (
@@ -111,6 +87,32 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
             </li>
           ))}
         </ul>
+      </div>
+
+      <div>
+        <h2>New</h2>
+        <form onSubmit={handleAddNode}>
+          <div>
+            <input
+              type="text"
+              placeholder="Title"
+              value={newTitle}
+              onChange={(e) => setNewTitle(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <textarea
+              placeholder="Details"
+              value={newContent}
+              onChange={(e) => setNewContent(e.target.value)}
+              required
+              rows="6"
+              cols="60"
+            />
+          </div>
+          <button type="submit">Add</button>
+        </form>
       </div>
     </div>
   );

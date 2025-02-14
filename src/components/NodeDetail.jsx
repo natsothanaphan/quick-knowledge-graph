@@ -9,16 +9,16 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // New state for node editing
+  // States for node editing
   const [editingNode, setEditingNode] = useState(false);
   const [editTitle, setEditTitle] = useState('');
   const [editContent, setEditContent] = useState('');
 
-  // New state for edge editing (only one at a time)
+  // States for edge editing
   const [editingEdgeId, setEditingEdgeId] = useState(null);
   const [editingEdgeLabel, setEditingEdgeLabel] = useState('');
 
-  // New state for adding an edge
+  // States for adding an edge
   const [newEdgeTarget, setNewEdgeTarget] = useState('');
   const [newEdgeLabel, setNewEdgeLabel] = useState('');
 
@@ -42,7 +42,6 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
     fetchNodeDetails();
   }, [nodeId]);
 
-  // Node editing functions
   const handleEditNode = () => {
     setEditingNode(true);
     setEditTitle(nodeData.title);
@@ -66,18 +65,17 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
   };
 
   const handleDeleteNode = async () => {
-    if (!window.confirm("Are you sure you want to delete this node?")) return;
+    if (!window.confirm("Are you sure you want to delete this entry?")) return;
     try {
       const idToken = await user.getIdToken();
       await api.deleteNode(idToken, nodeId);
-      alert('Node deleted');
-      onBack(); // Return to overview after deletion
+      alert('Entry deleted');
+      onBack();
     } catch (err) {
       alert(err.message);
     }
   };
 
-  // Edge editing functions
   const handleEditEdge = (edge) => {
     setEditingEdgeId(edge.id);
     setEditingEdgeLabel(edge.label);
@@ -101,7 +99,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
   };
 
   const handleDeleteEdge = async (edgeId) => {
-    if (!window.confirm("Are you sure you want to delete this edge?")) return;
+    if (!window.confirm("Are you sure you want to delete this connection?")) return;
     try {
       const idToken = await user.getIdToken();
       await api.deleteEdge(idToken, edgeId);
@@ -111,16 +109,14 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
     }
   };
 
-  // Function to add a new outgoing edge
   const handleAddEdge = async (e) => {
     e.preventDefault();
     try {
       const idToken = await user.getIdToken();
       // Convert target title to node id using allNodes mapping.
-      const targetTitle = newEdgeTarget;
-      const targetNode = allNodes.find(n => n.title === targetTitle);
+      const targetNode = allNodes.find(n => n.title === newEdgeTarget);
       if (!targetNode) {
-        throw new Error("Target node with that title not found");
+        throw new Error("Target entry with that title not found");
       }
       await api.addEdge(idToken, nodeId, targetNode.id, newEdgeLabel);
       await fetchNodeDetails(); // Refresh edges
@@ -138,7 +134,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
   };
 
   if (loading) {
-    return <p>Loading node details...</p>;
+    return <p>Loading entry...</p>;
   }
 
   if (error) {
@@ -146,33 +142,32 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
   }
 
   if (!nodeData) {
-    return <p>No node data available.</p>;
+    return <p>No entry data available.</p>;
   }
 
   return (
     <div>
-      {onBack && <button onClick={onBack}>Back</button>}
+      {onBack && <button onClick={onBack}>Overview</button>}
 
-      {/* Node details and editing */}
       {editingNode ? (
         <form onSubmit={handleSaveNode}>
           <div>
-            <label>Title: </label>
             <input 
-              type="text" 
+              type="text"
+              placeholder="Title"
               value={editTitle} 
               onChange={(e) => setEditTitle(e.target.value)} 
               required 
             />
           </div>
           <div>
-            <label>Content: </label>
-            <textarea 
+            <textarea
+              placeholder="Details"
               value={editContent} 
               onChange={(e) => setEditContent(e.target.value)} 
               required 
-              rows="4" 
-              cols="50" 
+              rows="6" 
+              cols="60" 
             />
           </div>
           <button type="submit">Save</button>
@@ -180,23 +175,22 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
         </form>
       ) : (
         <div>
-          <h2>{nodeData.title}</h2>
+          <h1>{nodeData.title}</h1>
           <p>{nodeData.content}</p>
-          <button onClick={handleEditNode}>Edit Node</button>
-          <button onClick={handleDeleteNode}>Delete Node</button>
+          <button onClick={handleEditNode} title="Edit">✏️</button>
+          <button onClick={handleDeleteNode} title="Delete">🗑️</button>
         </div>
       )}
 
-      {/* Outgoing edges section with inline editing */}
       <section>
-        <h3>Outgoing edges</h3>
         <ul>
           {outgoingEdges.map(edge => (
             <li key={edge.id}>
               {editingEdgeId === edge.id ? (
                 <>
                   <input 
-                    type="text" 
+                    type="text"
+                    placeholder="Label"
                     value={editingEdgeLabel} 
                     onChange={(e) => setEditingEdgeLabel(e.target.value)} 
                   />
@@ -205,7 +199,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
                 </>
               ) : (
                 <>
-                  {edge.label} to:{' '}
+                  {edge.label}{' ➡️ '}
                   <a
                     href="#"
                     onClick={(e) => {
@@ -215,51 +209,19 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
                   >
                     {getNodeTitleById(edge.target)}
                   </a>{' '}
-                  <button onClick={() => handleEditEdge(edge)}>Edit</button>
-                  <button onClick={() => handleDeleteEdge(edge.id)}>Delete</button>
+                  <button onClick={() => handleEditEdge(edge)} title="Edit">✏️</button>
+                  <button onClick={() => handleDeleteEdge(edge.id)} title="Delete">🗑️</button>
                 </>
               )}
             </li>
           ))}
-        </ul>
-      </section>
-
-      {/* Form for adding a new outgoing edge */}
-      <section>
-        <h3>Add new outgoing edge</h3>
-        <form onSubmit={handleAddEdge}>
-          <div>
-            <label>Target Node Title: </label>
-            <input 
-              type="text"
-              value={newEdgeTarget}
-              onChange={(e) => setNewEdgeTarget(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <label>Label: </label>
-            <input 
-              type="text"
-              value={newEdgeLabel}
-              onChange={(e) => setNewEdgeLabel(e.target.value)}
-              required
-            />
-          </div>
-          <button type="submit">Add Edge</button>
-        </form>
-      </section>
-
-      {/* Incoming edges section with inline editing */}
-      <section>
-        <h3>Incoming edges</h3>
-        <ul>
           {incomingEdges.map(edge => (
             <li key={edge.id}>
               {editingEdgeId === edge.id ? (
                 <>
                   <input 
-                    type="text" 
+                    type="text"
+                    placeholder="Label"
                     value={editingEdgeLabel} 
                     onChange={(e) => setEditingEdgeLabel(e.target.value)} 
                   />
@@ -268,7 +230,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
                 </>
               ) : (
                 <>
-                  {edge.label} from:{' '}
+                  {edge.label}{' ⬅️ '}
                   <a
                     href="#"
                     onClick={(e) => {
@@ -278,13 +240,38 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
                   >
                     {getNodeTitleById(edge.source)}
                   </a>{' '}
-                  <button onClick={() => handleEditEdge(edge)}>Edit</button>
-                  <button onClick={() => handleDeleteEdge(edge.id)}>Delete</button>
+                  <button onClick={() => handleEditEdge(edge)} title="Edit">✏️</button>
+                  <button onClick={() => handleDeleteEdge(edge.id)} title="Delete">🗑️</button>
                 </>
               )}
             </li>
           ))}
         </ul>
+      </section>
+
+      <section>
+        <h2>Connect to</h2>
+        <form onSubmit={handleAddEdge}>
+          <div>
+            <input 
+              type="text"
+              placeholder="Title"
+              value={newEdgeTarget}
+              onChange={(e) => setNewEdgeTarget(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <input
+              type="text"
+              placeholder="Label"
+              value={newEdgeLabel}
+              onChange={(e) => setNewEdgeLabel(e.target.value)}
+              required
+            />
+          </div>
+          <button type="submit">Add</button>
+        </form>
       </section>
     </div>
   );
