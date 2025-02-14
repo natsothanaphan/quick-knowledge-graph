@@ -38,3 +38,19 @@
   width: calc(100% - 2.4em - 2px);
   max-width: calc(360px - 2.4em - 2px);
 }
+
+.add-edge-container {
+  margin: 4px 0;
+  width: 100%;
+  max-width: 600px;
+}
+
+.add-edge-title {
+  width: calc(100% - 2.4em - 2px);
+  max-width: calc(420px - 2.4em - 2px);
+}
+
+.add-edge-label {
+  width: calc(100% - 2.4em - 2px);
+  max-width: calc(360px - 2.4em - 2px);
+}

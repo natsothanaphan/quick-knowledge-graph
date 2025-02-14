@@ -255,11 +255,12 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
         </ul>
       </div>
 
-      <div>
+      <div className="add-edge-container">
         <h2>Connect to</h2>
         <form onSubmit={handleAddEdge}>
           <div>
             <input 
+              className="add-edge-title"
               type="text"
               placeholder="Title"
               value={newEdgeTarget}
@@ -269,6 +270,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
           </div>
           <div>
             <input
+              className="add-edge-label"
               type="text"
               placeholder="Label"
               value={newEdgeLabel}
