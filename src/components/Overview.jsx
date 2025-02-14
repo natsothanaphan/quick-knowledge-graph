@@ -3,7 +3,10 @@ import '../styles.css';
 import * as api from '../api.js';
 
 export default function Overview({ user, onSelectNode, onNodesFetched }) {
+  // nodes that are actually displayed (filtered)
   const [nodes, setNodes] = useState([]);
+  // store full list of nodes fetched from the API
+  const [fullNodes, setFullNodes] = useState([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -15,11 +18,16 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
     setError('');
     try {
       const idToken = await user.getIdToken();
-      const data = await api.fetchNodes(idToken, search);
-      setNodes(data);
+      // Always fetch all nodes by passing an empty string for search
+      const data = await api.fetchNodes(idToken, '');
+      setFullNodes(data);
       if (onNodesFetched) {
         onNodesFetched(data);
       }
+      const filteredNodes = data.filter(node =>
+        node.title.includes(search)
+      );
+      setNodes(filteredNodes);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -27,17 +35,24 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
     }
   };
 
+  // Fetch nodes when the component mounts
   useEffect(() => {
     fetchNodes();
-    // Refetch nodes each time the search string changes
-  }, [search]);
+  }, []);
+
+  useEffect(() => {
+    const filteredNodes = fullNodes.filter(node =>
+      node.title.includes(search)
+    );
+    setNodes(filteredNodes);
+  }, [search, fullNodes]);
 
   const handleAddNode = async (e) => {
     e.preventDefault();
     try {
       const idToken = await user.getIdToken();
       await api.addNode(idToken, newTitle, newContent);
-      // After adding a node, re-fetch the node list.
+      // After adding a node, re-fetch the full node list.
       fetchNodes();
       setNewTitle('');
       setNewContent('');
