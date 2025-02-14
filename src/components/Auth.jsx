@@ -20,7 +20,7 @@ export default function Auth({ onSignIn }) {
   };
 
   return (
-    <div>
+    <>
       {error && <p className="error">{error}</p>}
       <form onSubmit={handleSignIn}>
         <div>
@@ -43,6 +43,6 @@ export default function Auth({ onSignIn }) {
         </div>
         <button type="submit">Sign in</button>
       </form>
-    </div>
+    </>
   );
 }

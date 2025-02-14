@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import '../styles.css';
+import './Overview.css';
 import * as api from '../api.js';
 
 export default function Overview({ user, onSelectNode, onNodesFetched }) {
@@ -58,10 +59,11 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
   };
 
   return (
-    <div>
+    <>
       <h1>Overview</h1>
       <div className="search-container">
         <input
+          className="search-input"
           type="text"
           placeholder="Search"
           value={search}
@@ -69,10 +71,10 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
         />
       </div>
 
-      <div>
+      <div className="nodes-list-container">
         {loading && <p>Loading...</p>}
         {error && <p className="error">{error}</p>}
-        <ul>
+        {!loading && !error && <ul className="nodes-list">
           {nodes.map(node => (
             <li key={node.id}>
               <a
@@ -86,14 +88,15 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
               </a>
             </li>
           ))}
-        </ul>
+        </ul>}
       </div>
 
-      <div>
+      <div className="add-node-container">
         <h2>New</h2>
         <form onSubmit={handleAddNode}>
           <div>
             <input
+              className="add-node-input"
               type="text"
               placeholder="Title"
               value={newTitle}
@@ -103,6 +106,7 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
           </div>
           <div>
             <textarea
+              className="add-node-textarea"
               placeholder="Details"
               value={newContent}
               onChange={(e) => setNewContent(e.target.value)}
@@ -114,6 +118,6 @@ export default function Overview({ user, onSelectNode, onNodesFetched }) {
           <button type="submit">Add</button>
         </form>
       </div>
-    </div>
+    </>
   );
 }

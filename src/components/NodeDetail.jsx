@@ -146,7 +146,7 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
   }
 
   return (
-    <div>
+    <>
       {onBack && <button onClick={onBack}>Overview</button>}
 
       {editingNode ? (
@@ -273,6 +273,6 @@ export default function NodeDetail({ nodeId, user, onSelectNode, onBack, allNode
           <button type="submit">Add</button>
         </form>
       </section>
-    </div>
+    </>
   );
 }
