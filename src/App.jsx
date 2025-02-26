@@ -4,46 +4,23 @@ import Overview from './components/Overview';
 import NodeDetail from './components/NodeDetail';
 import './App.css';
 
-function App() {
+const App = () => {
   const [user, setUser] = useState(null);
-  const [selectedNodeId, setSelectedNodeId] = useState(null);
   const [allNodes, setAllNodes] = useState([]);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
 
-  const handleSignIn = (signedInUser) => {
-    setUser(signedInUser);
-  };
+  const handleSignIn = (signedInUser) => setUser(signedInUser);
+  const handleSelectNode = (nodeId) => setSelectedNodeId(nodeId);
+  const handleBack = () => setSelectedNodeId(null);
 
-  const handleSelectNode = (nodeId) => {
-    setSelectedNodeId(nodeId);
-  };
-
-  const handleBack = () => {
-    setSelectedNodeId(null);
-  };
-
-  if (!user) {
-    return (
-      <div className="App">
-        <Auth onSignIn={handleSignIn} />
-      </div>
-    );
-  }
+  if (!user) return <div className='App'><Auth onSignIn={handleSignIn} /></div>;
 
   return (
-    <div className="App">
-      {selectedNodeId ? (
-        <NodeDetail
-          nodeId={selectedNodeId}
-          user={user}
-          onSelectNode={handleSelectNode}
-          onBack={handleBack}
-          allNodes={allNodes}
-        />
-      ) : (
-        <Overview user={user} onSelectNode={handleSelectNode} onNodesFetched={setAllNodes} />
-      )}
+    <div className='App'>
+      {!selectedNodeId && <Overview user={user} onNodesFetched={setAllNodes} onSelectNode={handleSelectNode} />}
+      {selectedNodeId && <NodeDetail user={user} allNodes={allNodes} nodeId={selectedNodeId} onSelectNode={handleSelectNode} onBack={handleBack} />}
     </div>
   );
-}
+};
 
 export default App;
