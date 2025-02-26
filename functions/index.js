@@ -1,62 +1,54 @@
-const admin = require("firebase-admin");
-const { setGlobalOptions } = require("firebase-functions/v2");
-const { onRequest } = require("firebase-functions/v2/https");
-const logger = require("firebase-functions/logger");
-const express = require("express");
+require('dotenv').config({ path: ['.env', '.env.default'] });
+const { initializeApp } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { setGlobalOptions } = require('firebase-functions/v2');
+const { onRequest } = require('firebase-functions/v2/https');
+const logger = require('firebase-functions/logger');
+const express = require('express');
 
 setGlobalOptions({ region: 'asia-southeast1' });
-
-admin.initializeApp();
+initializeApp();
+const db = getFirestore();
 
 const app = express();
 app.use(express.json());
 
-/**
- * Authentication middleware.
- * Checks for an Authorization header with a Bearer token,
- * verifies the token with Firebase Auth, and sets the uid on req.
- */
-async function authenticate(req, res, next) {
+const authenticate = async (req, res, next) => {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return res.status(401).json({ error: "Unauthorized: No token provided" });
+  if (!authHeader?.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized: No token provided' });
   }
-  const idToken = authHeader.split("Bearer ")[1];
+  const idToken = authHeader.split('Bearer ')[1];
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    const decodedToken = await getAuth().verifyIdToken(idToken);
     req.uid = decodedToken.uid;
     next();
   } catch (error) {
-    logger.error("Authentication error:", error);
-    return res.status(401).json({ error: "Unauthorized: Invalid token" });
+    logger.error('Authentication error:', error);
+    return res.status(401).json({ error: 'Unauthorized: Invalid token' });
   }
-}
-
-// Use the authentication middleware for all routes
+};
 app.use(authenticate);
 
-// Helper functions to get the Firestore collection references for the current user.
-const getNodesCollection = (uid) =>
-  admin.firestore().collection("users").doc(uid).collection("nodes");
-const getEdgesCollection = (uid) =>
-  admin.firestore().collection("users").doc(uid).collection("edges");
+app.get('/api/ping', (req, res) => {
+  res.send('pong');
+});
 
-// ==========================
-// Node Endpoints
-// ==========================
+const getNodesCollection = (uid) => db.collection('users').doc(uid).collection('nodes');
+const getEdgesCollection = (uid) => db.collection('users').doc(uid).collection('edges');
 
-/**
- * GET /api/nodes
- * Returns a list of nodes (id and title) for the authenticated user.
- * If a 'search' query parameter is provided, it filters nodes
- * by checking if the title includes the search substring.
- */
-app.get("/api/nodes", async (req, res) => {
+const docToData = (doc) => {
+  const data = doc.data();
+  return { id: doc.id, ...data,
+    createdAt: data.createdAt.toDate(), updatedAt: data.updatedAt.toDate() };
+};
+
+app.get('/api/nodes', async (req, res) => {
   const uid = req.uid;
   try {
     const search = req.query.search;
-    const nodesRef = getNodesCollection(uid);
-    const querySnapshot = await nodesRef.get();
+    const querySnapshot = await getNodesCollection(uid).get();
     const nodes = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
@@ -66,67 +58,47 @@ app.get("/api/nodes", async (req, res) => {
     });
     return res.json(nodes);
   } catch (error) {
-    logger.error("Error fetching nodes:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    logger.error('Error fetching nodes:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-/**
- * POST /api/nodes
- * Creates a new node with a unique title and content.
- * Enforces uniqueness of the title (per user) before creation.
- */
-app.post("/api/nodes", async (req, res) => {
+app.post('/api/nodes', async (req, res) => {
   const uid = req.uid;
   const { title, content } = req.body;
-  if (!title || !content) {
-    return res.status(400).json({ error: "Title and content are required" });
-  }
+  if (!title || !content) return res.status(400).json({ error: 'Title and content are required' });
   try {
     const nodesRef = getNodesCollection(uid);
-    // Check for duplicate title.
-    const existsQuery = await nodesRef.where("title", "==", title).get();
-    if (!existsQuery.empty) {
-      return res.status(400).json({ error: "Node with this title already exists" });
-    }
-    const newNodeData = { title, content };
+    const existsQuery = await nodesRef.where('title', '==', title).get();
+    if (!existsQuery.empty) return res.status(400).json({ error: 'Node with this title already exists' });
+    const newNodeData = { title, content, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() };
     const newNodeRef = await nodesRef.add(newNodeData);
-    return res.status(201).json({ id: newNodeRef.id, title, content });
+    return res.status(201).json({ id: newNodeRef.id, ...newNodeData });
   } catch (error) {
-    logger.error("Error creating node:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    logger.error('Error creating node:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-/**
- * GET /api/nodes/:nodeId
- * Retrieves a full node record along with its incoming and outgoing edges.
- * Outgoing edges are those where the node is the source,
- * and incoming edges are those where the node is the target.
- */
-app.get("/api/nodes/:nodeId", async (req, res) => {
+app.get('/api/nodes/:nodeId', async (req, res) => {
   const uid = req.uid;
   const { nodeId } = req.params;
   try {
     const nodeRef = getNodesCollection(uid).doc(nodeId);
     const nodeDoc = await nodeRef.get();
-    if (!nodeDoc.exists) {
-      return res.status(404).json({ error: "Node not found" });
-    }
-    const nodeData = { id: nodeDoc.id, ...nodeDoc.data() };
+    if (!nodeDoc.exists) return res.status(404).json({ error: 'Node not found' });
+    const nodeData = docToData(nodeDoc);
 
     const edgesRef = getEdgesCollection(uid);
-    // Outgoing edges: node is the source.
-    const outgoingSnapshot = await edgesRef.where("source", "==", nodeId).get();
+    const outgoingSnapshot = await edgesRef.where('source', '==', nodeId).get();
     const outgoingEdges = [];
     outgoingSnapshot.forEach((doc) => {
-      outgoingEdges.push({ id: doc.id, ...doc.data() });
+      outgoingEdges.push(docToData(doc));
     });
-    // Incoming edges: node is the target.
-    const incomingSnapshot = await edgesRef.where("target", "==", nodeId).get();
+    const incomingSnapshot = await edgesRef.where('target', '==', nodeId).get();
     const incomingEdges = [];
     incomingSnapshot.forEach((doc) => {
-      incomingEdges.push({ id: doc.id, ...doc.data() });
+      incomingEdges.push(docToData(doc));
     });
 
     return res.json({
@@ -135,171 +107,118 @@ app.get("/api/nodes/:nodeId", async (req, res) => {
       outgoingEdges: outgoingEdges,
     });
   } catch (error) {
-    logger.error("Error fetching node details:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    logger.error('Error fetching node details:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-/**
- * PATCH /api/nodes/:nodeId
- * Updates the specified node's title and/or content.
- * If the title is updated, enforces its uniqueness.s
- */
-app.patch("/api/nodes/:nodeId", async (req, res) => {
+app.patch('/api/nodes/:nodeId', async (req, res) => {
   const uid = req.uid;
   const { nodeId } = req.params;
   const { title, content } = req.body;
-  if (!title && !content) {
-    return res.status(400).json({ error: "Nothing to update" });
-  }
+  if (!title && !content) return res.status(400).json({ error: 'Nothing to update' });
   try {
     const nodeRef = getNodesCollection(uid).doc(nodeId);
     const nodeDoc = await nodeRef.get();
-    if (!nodeDoc.exists) {
-      return res.status(404).json({ error: "Node not found" });
-    }
+    if (!nodeDoc.exists) return res.status(404).json({ error: 'Node not found' });
     const updateData = {};
     if (title) {
-      // Check for duplicate title.
-      const nodesRef = getNodesCollection(uid);
-      const existsQuery = await nodesRef.where("title", "==", title).get();
+      const existsQuery = await getNodesCollection(uid).where('title', '==', title).get();
       let duplicate = false;
       existsQuery.forEach((doc) => {
-        if (doc.id !== nodeId) {
-          duplicate = true;
-        }
+        if (doc.id !== nodeId) duplicate = true;
       });
-      if (duplicate) {
-        return res.status(400).json({ error: "Another node with this title already exists" });
-      }
+      if (duplicate) return res.status(400).json({ error: 'Another node with this title already exists' });
       updateData.title = title;
     }
-    if (content) {
-      updateData.content = content;
-    }
+    if (content) updateData.content = content;
+    updateData.updatedAt = FieldValue.serverTimestamp();
+
     await nodeRef.update(updateData);
     const updatedDoc = await nodeRef.get();
-    return res.json({ id: updatedDoc.id, ...updatedDoc.data() });
+    return res.json(docToData(updatedDoc));
   } catch (error) {
-    logger.error("Error updating node:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    logger.error('Error updating node:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-/**
- * DELETE /api/nodes/:nodeId
- * Deletes the specified node and cascades the deletion to all associated edges (incoming and outgoing).
- */
-app.delete("/api/nodes/:nodeId", async (req, res) => {
+app.delete('/api/nodes/:nodeId', async (req, res) => {
   const uid = req.uid;
   const { nodeId } = req.params;
   try {
     const nodeRef = getNodesCollection(uid).doc(nodeId);
     const nodeDoc = await nodeRef.get();
-    if (!nodeDoc.exists) {
-      return res.status(404).json({ error: "Node not found" });
-    }
-    const batch = admin.firestore().batch();
-    // Delete the node.
-    batch.delete(nodeRef);
+    if (!nodeDoc.exists) return res.status(404).json({ error: 'Node not found' });
 
+    const batch = db.batch();
+    batch.delete(nodeRef);
     const edgesRef = getEdgesCollection(uid);
-    // Delete outgoing edges.
-    const outgoingSnapshot = await edgesRef.where("source", "==", nodeId).get();
+    const outgoingSnapshot = await edgesRef.where('source', '==', nodeId).get();
     outgoingSnapshot.forEach((doc) => {
       batch.delete(doc.ref);
     });
-    // Delete incoming edges.
-    const incomingSnapshot = await edgesRef.where("target", "==", nodeId).get();
+    const incomingSnapshot = await edgesRef.where('target', '==', nodeId).get();
     incomingSnapshot.forEach((doc) => {
       batch.delete(doc.ref);
     });
     await batch.commit();
-    return res.json({ message: "Node and associated edges deleted successfully" });
+    return res.status(204).send();
   } catch (error) {
-    logger.error("Error deleting node:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    logger.error('Error deleting node:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// ==========================
-// Edge Endpoints
-// ==========================
-
-/**
- * POST /api/edges
- * Creates an edge between two nodes.
- * Requires that both the source and target node IDs are valid.
- */
-app.post("/api/edges", async (req, res) => {
+app.post('/api/edges', async (req, res) => {
   const uid = req.uid;
   const { source, target, label } = req.body;
-  if (!source || !target || !label) {
-    return res.status(400).json({ error: "Source, target, and label are required" });
-  }
+  if (!source || !target || !label) return res.status(400).json({ error: 'Source, target, and label are required' });
   try {
     const nodesRef = getNodesCollection(uid);
     const sourceDoc = await nodesRef.doc(source).get();
     const targetDoc = await nodesRef.doc(target).get();
-    if (!sourceDoc.exists || !targetDoc.exists) {
-      return res.status(400).json({ error: "Invalid source or target node" });
-    }
-    const edgeData = { source, target, label };
-    const edgesRef = getEdgesCollection(uid);
-    const edgeRef = await edgesRef.add(edgeData);
+    if (!sourceDoc.exists || !targetDoc.exists) return res.status(400).json({ error: 'Invalid source or target node' });
+    const edgeData = { source, target, label, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() };
+    const edgeRef = await getEdgesCollection(uid).add(edgeData);
     return res.status(201).json({ id: edgeRef.id, ...edgeData });
   } catch (error) {
-    logger.error("Error creating edge:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    logger.error('Error creating edge:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-/**
- * PATCH /api/edges/:edgeId
- * Updates only the label of the specified edge.
- */
-app.patch("/api/edges/:edgeId", async (req, res) => {
+app.patch('/api/edges/:edgeId', async (req, res) => {
   const uid = req.uid;
   const { edgeId } = req.params;
   const { label } = req.body;
-  if (!label) {
-    return res.status(400).json({ error: "Label is required for update" });
-  }
+  if (!label) return res.status(400).json({ error: 'Label is required for update' });
   try {
     const edgeRef = getEdgesCollection(uid).doc(edgeId);
     const edgeDoc = await edgeRef.get();
-    if (!edgeDoc.exists) {
-      return res.status(404).json({ error: "Edge not found" });
-    }
-    await edgeRef.update({ label });
+    if (!edgeDoc.exists) return res.status(404).json({ error: 'Edge not found' });
+    await edgeRef.update({ label, updatedAt: FieldValue.serverTimestamp() });
     const updatedEdgeDoc = await edgeRef.get();
-    return res.json({ id: updatedEdgeDoc.id, ...updatedEdgeDoc.data() });
+    return res.json(docToData(updatedEdgeDoc));
   } catch (error) {
-    logger.error("Error updating edge:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    logger.error('Error updating edge:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-/**
- * DELETE /api/edges/:edgeId
- * Deletes the specified edge.
- */
-app.delete("/api/edges/:edgeId", async (req, res) => {
+app.delete('/api/edges/:edgeId', async (req, res) => {
   const uid = req.uid;
   const { edgeId } = req.params;
   try {
     const edgeRef = getEdgesCollection(uid).doc(edgeId);
     const edgeDoc = await edgeRef.get();
-    if (!edgeDoc.exists) {
-      return res.status(404).json({ error: "Edge not found" });
-    }
+    if (!edgeDoc.exists) return res.status(404).json({ error: 'Edge not found' });
     await edgeRef.delete();
-    return res.json({ message: "Edge deleted successfully" });
+    return res.status(204).send();
   } catch (error) {
-    logger.error("Error deleting edge:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    logger.error('Error deleting edge:', error);
+    return res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Export the Express app as a Firebase Function
 exports.app = onRequest(app);

@@ -85,9 +85,7 @@ export async function deleteNode(token, nodeId) {
     console.log('api.js deleteNode error', { errorData });
     throw new Error(errorData.error || 'Failed to delete node');
   }
-  const data = await res.json();
-  console.log('api.js deleteNode', { data });
-  return data;
+  console.log('api.js deleteNode');
 }
 
 export async function addEdge(token, source, target, label) {
@@ -143,7 +141,5 @@ export async function deleteEdge(token, edgeId) {
     console.log('api.js deleteEdge error', { errorData });
     throw new Error(errorData.error || 'Failed to delete edge');
   }
-  const data = await res.json();
-  console.log('api.js deleteEdge', { data });
-  return data;
-}
+  console.log('api.js deleteEdge');
+};
