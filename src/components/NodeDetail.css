@@ -1,56 +1,65 @@
 .node-detail-container {
   width: 100%;
-  max-width: 600px;
+  max-width: 720px;
+  margin: 4px 0;
   word-break: break-word;
 }
-
-.node-detail-container pre {
+.node-detail-container > pre {
   white-space: pre-wrap;
 }
 
-.edit-node-input {
-  width: calc(100% - 2.4em - 2px);
-  max-width: calc(420px - 2.4em - 2px);
+.node-detail-container > form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
-
-.edit-node-textarea {
+.node-detail-container > form > input {
   width: calc(100% - 2.4em - 2px);
-  max-width: calc(600px - 2.4em - 2px);
+  max-width: calc(720px - 2.4em - 2px);
+}
+.node-detail-container > form > textarea {
+  width: calc(100% - 2.4em - 2px);
+  max-width: calc(720px - 2.4em - 2px);
+}
+.node-detail-container > form > div {
+  align-self: flex-end;
 }
 
 .edges-container {
-  margin: 16px 0;
   width: 100%;
-  max-width: 600px;
+  max-width: 720px;
+  margin: 4px 0;
 }
 
-.edges-container ul {
+.edges-container > ul {
   list-style-type: none;
   padding: 0;
   margin: 0;
 }
-
-.edges-container ul li {
+.edges-container > ul > li {
   word-break: break-all;
 }
 
-.edit-edge-input {
+.edges-container > ul > li > input {
   width: calc(100% - 2.4em - 2px);
-  max-width: calc(360px - 2.4em - 2px);
+  max-width: calc(720px - 2.4em - 2px);
 }
 
 .add-edge-container {
-  margin: 4px 0;
   width: 100%;
-  max-width: 600px;
+  max-width: 720px;
+  margin: 4px 0;
+}
+.add-edge-container > form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.add-edge-title {
+.add-edge-container > form > input {
   width: calc(100% - 2.4em - 2px);
-  max-width: calc(420px - 2.4em - 2px);
+  max-width: calc(720px - 2.4em - 2px);
 }
-
-.add-edge-label {
-  width: calc(100% - 2.4em - 2px);
-  max-width: calc(360px - 2.4em - 2px);
+.add-edge-container > form > button {
+  align-self: flex-end;
 }
