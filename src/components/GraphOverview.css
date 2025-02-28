@@ -1,9 +1,9 @@
-.search-container {
+.nodes-search-container {
   width: 100%;
   max-width: 720px;
   margin: 4px 0;
 }
-.search-container > input {
+.nodes-search-container > input {
   width: calc(100% - 2.4em - 2px);
   max-width: calc(720px - 2.4em - 2px);
 }

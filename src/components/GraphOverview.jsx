@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import './Overview.css';
+import './GraphOverview.css';
 import api from '../api.js';
 import { alertAndLogErr } from '../utils.js';
 
-const Overview = ({ user, onNodesFetched, onSelectNode }) => {
+const GraphOverview = ({ user, graphId, onNodesFetched, onSelectNode, onBack }) => {
   const [nodes, setNodes] = useState([]);
   const [fullNodes, setFullNodes] = useState([]);
   const [search, setSearch] = useState('');
@@ -15,7 +15,7 @@ const Overview = ({ user, onNodesFetched, onSelectNode }) => {
     setLoading(true);
     try {
       const idToken = await user.getIdToken();
-      const data = await api.fetchNodes(idToken, '');
+      const data = await api.fetchNodes(idToken, graphId);
       data.sort((a, b) => a.title.localeCompare(b.title));
       setFullNodes(data);
       onNodesFetched(data);
@@ -30,7 +30,7 @@ const Overview = ({ user, onNodesFetched, onSelectNode }) => {
     e.preventDefault();
     try {
       const idToken = await user.getIdToken();
-      await api.addNode(idToken, newTitle, newContent);
+      await api.addNode(idToken, graphId, newTitle, newContent);
       setNewTitle('');
       setNewContent('');
       fetchNodes();
@@ -54,7 +54,8 @@ const Overview = ({ user, onNodesFetched, onSelectNode }) => {
 
   return (
     <>
-      <div className='search-container'>
+      <button onClick={onBack}>main</button>
+      <div className='nodes-search-container'>
         <input type='text' value={search}
           onChange={(e) => setSearch(e.target.value)} />
       </div>
@@ -78,4 +79,4 @@ const Overview = ({ user, onNodesFetched, onSelectNode }) => {
   );
 };
 
-export default Overview;
+export default GraphOverview;
