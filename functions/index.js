@@ -34,27 +34,109 @@ app.use(authenticate);
 app.get('/api/ping', (req, res) => {
   res.send('pong');
 });
-
-const getNodesCollection = (uid) => db.collection('users').doc(uid).collection('nodes');
-const getEdgesCollection = (uid) => db.collection('users').doc(uid).collection('edges');
-
 const docToData = (doc) => {
   const data = doc.data();
   return { id: doc.id, ...data,
     createdAt: data.createdAt.toDate(), updatedAt: data.updatedAt.toDate() };
 };
 
-app.get('/api/nodes', async (req, res) => {
+const getGraphsCollection = (uid) => db.collection('users').doc(uid).collection('graphs');
+const getGraphDoc = (uid, graphId) => getGraphsCollection(uid).doc(graphId);
+const getNodesCollection = (uid, graphId) => getGraphDoc(uid, graphId).collection('nodes');
+const getEdgesCollection = (uid, graphId) => getGraphDoc(uid, graphId).collection('edges');
+
+app.get('/api/graphs', async (req, res) => {
   const uid = req.uid;
   try {
-    const search = req.query.search;
-    const querySnapshot = await getNodesCollection(uid).get();
+    const graphsSnapshot = await getGraphsCollection(uid).get();
+    const graphs = [];
+    graphsSnapshot.forEach((doc) => {
+      graphs.push(docToData(doc));
+    });
+    return res.json(graphs);
+  } catch (error) {
+    logger.error('Error fetching graphs:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/graphs', async (req, res) => {
+  const uid = req.uid;
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Graph name is required' });
+  try {
+    const graphsRef = getGraphsCollection(uid);
+    const existsQuery = await graphsRef.where('name', '==', name).get();
+    if (!existsQuery.empty) return res.status(400).json({ error: 'Graph with this name already exists' });
+    const graphData = { name, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() };
+    const newGraphRef = await graphsRef.add(graphData);
+    return res.status(201).json({ id: newGraphRef.id, ...graphData });
+  } catch (error) {
+    logger.error('Error creating graph:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.patch('/api/graphs/:graphId', async (req, res) => {
+  const uid = req.uid;
+  const { graphId } = req.params;
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Graph name is required for update' });
+  try {
+    const graphRef = getGraphDoc(uid, graphId);
+    const graphDoc = await graphRef.get();
+    if (!graphDoc.exists) return res.status(404).json({ error: 'Graph not found' });
+    const graphsRef = getGraphsCollection(uid);
+    const existsQuery = await graphsRef.where('name', '==', name).get();
+    let duplicate = false;
+    existsQuery.forEach((doc) => {
+      if (doc.id !== graphId) duplicate = true;
+    });
+    if (duplicate) return res.status(400).json({ error: 'Another graph with this name already exists' });
+    await graphRef.update({ name, updatedAt: FieldValue.serverTimestamp() });
+    const updatedGraph = await graphRef.get();
+    return res.json(docToData(updatedGraph));
+  } catch (error) {
+    logger.error('Error updating graph:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.delete('/api/graphs/:graphId', async (req, res) => {
+  const uid = req.uid;
+  const { graphId } = req.params;
+  try {
+    const graphRef = getGraphDoc(uid, graphId);
+    const graphDoc = await graphRef.get();
+    if (!graphDoc.exists) return res.status(404).json({ error: 'Graph not found' });
+
+    const batch = db.batch();
+    const nodesSnapshot = await getNodesCollection(uid, graphId).get();
+    nodesSnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    const edgesSnapshot = await getEdgesCollection(uid, graphId).get();
+    edgesSnapshot.forEach((doc) => {
+      batch.delete(doc.ref);
+    });
+    batch.delete(graphRef);
+    await batch.commit();
+    return res.status(204).send();
+  } catch (error) {
+    logger.error('Error deleting graph:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/graphs/:graphId/nodes', async (req, res) => {
+  const uid = req.uid;
+  const { graphId } = req.params;
+  try {
+    const querySnapshot = await getNodesCollection(uid, graphId).get();
     const nodes = [];
     querySnapshot.forEach((doc) => {
       const data = doc.data();
-      if (!search || data.title.toLowerCase().includes(search.toLowerCase())) {
-        nodes.push({ id: doc.id, title: data.title });
-      }
+      nodes.push({ id: doc.id, title: data.title });
     });
     return res.json(nodes);
   } catch (error) {
@@ -63,12 +145,13 @@ app.get('/api/nodes', async (req, res) => {
   }
 });
 
-app.post('/api/nodes', async (req, res) => {
+app.post('/api/graphs/:graphId/nodes', async (req, res) => {
   const uid = req.uid;
+  const { graphId } = req.params;
   const { title, content } = req.body;
   if (!title || !content) return res.status(400).json({ error: 'Title and content are required' });
   try {
-    const nodesRef = getNodesCollection(uid);
+    const nodesRef = getNodesCollection(uid, graphId);
     const existsQuery = await nodesRef.where('title', '==', title).get();
     if (!existsQuery.empty) return res.status(400).json({ error: 'Node with this title already exists' });
     const newNodeData = { title, content, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() };
@@ -80,16 +163,16 @@ app.post('/api/nodes', async (req, res) => {
   }
 });
 
-app.get('/api/nodes/:nodeId', async (req, res) => {
+app.get('/api/graphs/:graphId/nodes/:nodeId', async (req, res) => {
   const uid = req.uid;
-  const { nodeId } = req.params;
+  const { graphId, nodeId } = req.params;
   try {
-    const nodeRef = getNodesCollection(uid).doc(nodeId);
+    const nodeRef = getNodesCollection(uid, graphId).doc(nodeId);
     const nodeDoc = await nodeRef.get();
     if (!nodeDoc.exists) return res.status(404).json({ error: 'Node not found' });
     const nodeData = docToData(nodeDoc);
 
-    const edgesRef = getEdgesCollection(uid);
+    const edgesRef = getEdgesCollection(uid, graphId);
     const outgoingSnapshot = await edgesRef.where('source', '==', nodeId).get();
     const outgoingEdges = [];
     outgoingSnapshot.forEach((doc) => {
@@ -112,18 +195,18 @@ app.get('/api/nodes/:nodeId', async (req, res) => {
   }
 });
 
-app.patch('/api/nodes/:nodeId', async (req, res) => {
+app.patch('/api/graphs/:graphId/nodes/:nodeId', async (req, res) => {
   const uid = req.uid;
-  const { nodeId } = req.params;
+  const { graphId, nodeId } = req.params;
   const { title, content } = req.body;
   if (!title && !content) return res.status(400).json({ error: 'Nothing to update' });
   try {
-    const nodeRef = getNodesCollection(uid).doc(nodeId);
+    const nodeRef = getNodesCollection(uid, graphId).doc(nodeId);
     const nodeDoc = await nodeRef.get();
     if (!nodeDoc.exists) return res.status(404).json({ error: 'Node not found' });
     const updateData = {};
     if (title) {
-      const existsQuery = await getNodesCollection(uid).where('title', '==', title).get();
+      const existsQuery = await getNodesCollection(uid, graphId).where('title', '==', title).get();
       let duplicate = false;
       existsQuery.forEach((doc) => {
         if (doc.id !== nodeId) duplicate = true;
@@ -143,17 +226,17 @@ app.patch('/api/nodes/:nodeId', async (req, res) => {
   }
 });
 
-app.delete('/api/nodes/:nodeId', async (req, res) => {
+app.delete('/api/graphs/:graphId/nodes/:nodeId', async (req, res) => {
   const uid = req.uid;
-  const { nodeId } = req.params;
+  const { graphId, nodeId } = req.params;
   try {
-    const nodeRef = getNodesCollection(uid).doc(nodeId);
+    const nodeRef = getNodesCollection(uid, graphId).doc(nodeId);
     const nodeDoc = await nodeRef.get();
     if (!nodeDoc.exists) return res.status(404).json({ error: 'Node not found' });
 
     const batch = db.batch();
     batch.delete(nodeRef);
-    const edgesRef = getEdgesCollection(uid);
+    const edgesRef = getEdgesCollection(uid, graphId);
     const outgoingSnapshot = await edgesRef.where('source', '==', nodeId).get();
     outgoingSnapshot.forEach((doc) => {
       batch.delete(doc.ref);
@@ -170,17 +253,18 @@ app.delete('/api/nodes/:nodeId', async (req, res) => {
   }
 });
 
-app.post('/api/edges', async (req, res) => {
+app.post('/api/graphs/:graphId/edges', async (req, res) => {
   const uid = req.uid;
+  const { graphId } = req.params;
   const { source, target, label } = req.body;
   if (!source || !target || !label) return res.status(400).json({ error: 'Source, target, and label are required' });
   try {
-    const nodesRef = getNodesCollection(uid);
+    const nodesRef = getNodesCollection(uid, graphId);
     const sourceDoc = await nodesRef.doc(source).get();
     const targetDoc = await nodesRef.doc(target).get();
     if (!sourceDoc.exists || !targetDoc.exists) return res.status(400).json({ error: 'Invalid source or target node' });
     const edgeData = { source, target, label, createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() };
-    const edgeRef = await getEdgesCollection(uid).add(edgeData);
+    const edgeRef = await getEdgesCollection(uid, graphId).add(edgeData);
     return res.status(201).json({ id: edgeRef.id, ...edgeData });
   } catch (error) {
     logger.error('Error creating edge:', error);
@@ -188,13 +272,13 @@ app.post('/api/edges', async (req, res) => {
   }
 });
 
-app.patch('/api/edges/:edgeId', async (req, res) => {
+app.patch('/api/graphs/:graphId/edges/:edgeId', async (req, res) => {
   const uid = req.uid;
-  const { edgeId } = req.params;
+  const { graphId, edgeId } = req.params;
   const { label } = req.body;
   if (!label) return res.status(400).json({ error: 'Label is required for update' });
   try {
-    const edgeRef = getEdgesCollection(uid).doc(edgeId);
+    const edgeRef = getEdgesCollection(uid, graphId).doc(edgeId);
     const edgeDoc = await edgeRef.get();
     if (!edgeDoc.exists) return res.status(404).json({ error: 'Edge not found' });
     await edgeRef.update({ label, updatedAt: FieldValue.serverTimestamp() });
@@ -206,11 +290,11 @@ app.patch('/api/edges/:edgeId', async (req, res) => {
   }
 });
 
-app.delete('/api/edges/:edgeId', async (req, res) => {
+app.delete('/api/graphs/:graphId/edges/:edgeId', async (req, res) => {
   const uid = req.uid;
-  const { edgeId } = req.params;
+  const { graphId, edgeId } = req.params;
   try {
-    const edgeRef = getEdgesCollection(uid).doc(edgeId);
+    const edgeRef = getEdgesCollection(uid, graphId).doc(edgeId);
     const edgeDoc = await edgeRef.get();
     if (!edgeDoc.exists) return res.status(404).json({ error: 'Edge not found' });
     await edgeRef.delete();

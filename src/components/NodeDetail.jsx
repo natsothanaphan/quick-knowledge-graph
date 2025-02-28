@@ -3,7 +3,7 @@ import './NodeDetail.css';
 import api from '../api.js';
 import { alertAndLogErr } from '../utils.js';
 
-const NodeDetail = ({ user, allNodes, nodeId, onSelectNode, onBack }) => {
+const NodeDetail = ({ user, graphId, allNodes, nodeId, onSelectNode, onBack }) => {
   const [nodeData, setNodeData] = useState(null);
   const [incomingEdges, setIncomingEdges] = useState([]);
   const [outgoingEdges, setOutgoingEdges] = useState([]);
@@ -23,7 +23,7 @@ const NodeDetail = ({ user, allNodes, nodeId, onSelectNode, onBack }) => {
     setLoading(true);
     try {
       const idToken = await user.getIdToken();
-      const data = await api.getNodeDetails(idToken, nodeId);
+      const data = await api.getNodeDetails(idToken, graphId, nodeId);
       data.incomingEdges.sort((a, b) => a.label.localeCompare(b.label) || getNodeTitleById(a.source).localeCompare(getNodeTitleById(b.source)));
       data.outgoingEdges.sort((a, b) => a.label.localeCompare(b.label) || getNodeTitleById(a.target).localeCompare(getNodeTitleById(b.target)));
       setNodeData(data.node);
@@ -45,7 +45,7 @@ const NodeDetail = ({ user, allNodes, nodeId, onSelectNode, onBack }) => {
     if (!window.confirm('Are you sure you want to delete this entry?')) return;
     try {
       const idToken = await user.getIdToken();
-      await api.deleteNode(idToken, nodeId);
+      await api.deleteNode(idToken, graphId, nodeId);
       alert('Entry deleted');
       onBack();
     } catch (err) {
@@ -57,7 +57,7 @@ const NodeDetail = ({ user, allNodes, nodeId, onSelectNode, onBack }) => {
     e.preventDefault();
     try {
       const idToken = await user.getIdToken();
-      const updatedNode = await api.updateNode(idToken, nodeId, editTitle, editContent);
+      const updatedNode = await api.updateNode(idToken, graphId, nodeId, editTitle, editContent);
       setNodeData(updatedNode);
       setEditingNode(false);
     } catch (err) {
@@ -74,7 +74,7 @@ const NodeDetail = ({ user, allNodes, nodeId, onSelectNode, onBack }) => {
     if (!window.confirm('Are you sure you want to delete this connection?')) return;
     try {
       const idToken = await user.getIdToken();
-      await api.deleteEdge(idToken, edgeId);
+      await api.deleteEdge(idToken, graphId, edgeId);
       fetchNodeDetails();
     } catch (err) {
       alertAndLogErr(err);
@@ -84,7 +84,7 @@ const NodeDetail = ({ user, allNodes, nodeId, onSelectNode, onBack }) => {
   const handleSaveEdge = async (edgeId) => {
     try {
       const idToken = await user.getIdToken();
-      await api.updateEdge(idToken, edgeId, editingEdgeLabel);
+      await api.updateEdge(idToken, graphId, edgeId, editingEdgeLabel);
       setEditingEdgeId(null);
       setEditingEdgeLabel('');
       fetchNodeDetails();
@@ -103,7 +103,7 @@ const NodeDetail = ({ user, allNodes, nodeId, onSelectNode, onBack }) => {
       const idToken = await user.getIdToken();
       const targetNode = allNodes.find((node) => node.title === newEdgeTarget);
       if (!targetNode) throw new Error('Target entry with that title not found');
-      await api.addEdge(idToken, nodeId, targetNode.id, newEdgeLabel);
+      await api.addEdge(idToken, graphId, nodeId, targetNode.id, newEdgeLabel);
       setNewEdgeTarget('');
       setNewEdgeLabel('');
       fetchNodeDetails();
@@ -131,7 +131,7 @@ const NodeDetail = ({ user, allNodes, nodeId, onSelectNode, onBack }) => {
   if (!nodeData) return <p>No entry data.</p>;
   return (
     <>
-      <button onClick={onBack}>main</button>
+      <button onClick={onBack}>graph</button>
       <div className='node-detail-container'>
         {!editingNode && <>
           <h1>{nodeData.title}</h1>
